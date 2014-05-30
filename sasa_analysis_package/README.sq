@@ -1,0 +1,19 @@
+Hello!
+
+1. Please place run_sasa.sh, new_sasa_trajectory.tcl, and plot_sasa_values.py in the directory where your psf and dcd are located. And yes, new_sasa_trajectory.tcl is updated and needs to be replaced!
+
+2. The run_sasa.sh is hardcoded to the psf and dcd file names you gave me (though it's no problem to change them!). This script will run vmd without opening the GUI and run the new_sasa_trajectory.tcl script (which has been slightly modified from the original one I sent you!) To execute run_sasa.sh, first make sure it is executable. If it is not, run 'chmod u+x run_sasa.sh' from your terminal command line.  
+
+3. Run run_sasa.sh by executing ./run_sasa.sh from your terminal command line.
+
+4. If the process fails because it cannot find your VMD executable (the first line of the script run_sasa.sh), then modify the script to where your executable is. However, I don't expect this to be a problem!
+
+5. After you have ran run_sasa.sh, you will have 43 files named by #residue.txt. This file holds the sasa values for the corresponding residue by frame.
+
+6. The output for each of the .txt files is: residue# - sasa value - frame#.
+
+7. Don't be worried that the file name does not correspond to the residue number inside the file. I did this on purpose since the tcl script begins indexing the residues at 0, while we are used to referring to them beginning with 1.
+
+8. Now, all your data is there! To plot your data, run './plot_sasa_values.py' from command line. (Again, make sure this is executable!) This file will ask you for the file input and for the name you want to call your figure. I have given you examples of what type of input the script is looking for!
+
+

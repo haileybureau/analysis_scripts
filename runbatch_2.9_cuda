@@ -1,0 +1,123 @@
+#!/bin/tcsh
+
+if ( $# < 3 ) then
+  echo "This script requires three arguments:"
+  echo "  NAMD input file"
+  echo "  NAMD log file"
+  echo "  number of nodes (number of cores / 16)"
+  echo '  queue (defaults to "batch", other option is "test")'
+  exit -1
+endif
+
+set CONFFILE = $1
+shift
+set LOGFILE = $1
+shift
+set NUMNODES = $1
+shift
+
+set QUEUE = batch
+
+if ( $# ) then
+  set QUEUE = $1
+  shift
+endif
+
+if ( $QUEUE == test ) then
+  set TIME = 00:30:00
+  set QUEUE = batch
+  # if ( $NUMNODES <= 2 ) set QUEUE = debug
+else
+  set TIME = 24:00:00
+endif
+
+if ( ! -f $CONFFILE) then
+  echo "NAMD input file $CONFFILE does not exist!"
+  exit -1
+endif
+
+if ( -f $LOGFILE) then
+  echo "NAMD input file $LOGFILE already exists!"
+  exit -1
+endif
+
+set RUNDIR = `pwd`
+set TRACENAME = $LOGFILE:t:r.proj
+set TRACEROOT = ~/$TRACENAME
+
+set HOSTN = `hostname -s`
+
+echo "Submitting NAMD run to batch queue..."
+echo ""
+
+if ( $HOSTN == kidlogin1 || $HOSTN == kidlogin2 ) then
+
+# Run in a batch queue
+#cat << ENDINPUT
+qsub -q ${QUEUE} -V -j oe -N NAMD -A UT-TENN0068 -l walltime=${TIME},nodes=${NUMNODES}:ppn=3 << ENDINPUT
+
+cd $RUNDIR
+
+echo \$SHELL
+echo \$PBS_NODEFILE
+cat \$PBS_NODEFILE
+NP=\`awk 'END {print 3*NR}' \$PBS_NODEFILE\`
+echo \$NP
+
+# mkdir $TRACEROOT
+
+# scratch filesystem is better for files read on every node
+BINDIR=/sw/kfs/namd/2.9/centos6.2_intel12/NAMD_2.9_Linux-x86_64-ibverbs-smp-CUDA
+RUNSCRIPT=/sw/kfs/namd/2.9/centos6.2_intel12/NAMD_2.9_Linux-x86_64-ibverbs-smp-CUDA/runscript
+
+\$BINDIR/charmrun +p\$NP ++ppn 3 ++mpiexec ++runscript \$RUNSCRIPT \${BINDIR}/namd2 +idlepoll +pemap 0-8 +commap 9-11 $CONFFILE >& $LOGFILE
+
+# cp $CONFFILE $LOGFILE $TRACEROOT
+
+ENDINPUT
+
+else if ( $HOSTN == kfslogin1 || $HOSTN == kfslogin2 ) then
+
+# Run in a batch queue
+#cat << ENDINPUT
+qsub -q ${QUEUE} -V -j oe -N NAMD -A UT-TENN0068 -l walltime=${TIME},nodes=${NUMNODES}:ppn=3 << ENDINPUT
+
+cd $RUNDIR
+
+
+echo \$SHELL
+echo \$PBS_NODEFILE
+cat \$PBS_NODEFILE
+NP=\`awk 'END {print 4*NR}' \$PBS_NODEFILE\`
+echo \$NP
+
+# mkdir $TRACEROOT
+
+# scratch filesystem is better for files read on every node
+BINDIR=/sw/kfs/namd/2.9/centos6.2_intel12/NAMD_2.9_Linux-x86_64-ibverbs-smp-CUDA
+RUNSCRIPT=/sw/kfs/namd/2.9/centos6.2_intel12/NAMD_2.9_Linux-x86_64-ibverbs-smp-CUDA/runscript
+
+\$BINDIR/charmrun +p\$NP ++ppn 4 ++mpiexec ++runscript \$RUNSCRIPT \${BINDIR}/namd2 +idlepoll +pemap 0-11 +commap 12-14 $CONFFILE >& $LOGFILE
+
+# cp $CONFFILE $LOGFILE $TRACEROOT
+
+ENDINPUT
+
+else
+    echo "I do not know where I am. Exiting"
+    exit -1
+endif
+
+echo ""
+echo "NAMD is submitted to the queue, to check on your job use this command:"
+echo ""
+echo "    qstat -u $USER"
+echo ""
+echo "Your job is running if there is an R (running) in the S (state) column."
+echo "You may monitor progress with this command:"
+echo ""
+echo "    tail -F $LOGFILE"
+echo ""
+echo "You will need to press Control-C to exit the tail command."
+echo ""
+
